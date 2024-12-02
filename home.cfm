@@ -1,5 +1,6 @@
 <cfset variables.getContacts=application.dbObj.getTotalData()>
-<cfset session.allContacts=variables.getContacts>
+
+<!--- <cfset session.allContacts=variables.getContacts> --->
 <!DOCTYPE html>
 <html>
 	<head>
@@ -117,6 +118,24 @@
 																Delete
 															</button>
 														</td>
+													<cfelse>
+														<td class="no-print">
+														
+																<button class="edit-cont-details"
+																	disabled
+																>
+																	EDIT
+																</button>
+														
+														</td>
+														<td class="no-print">
+															<button class="delete-contact-details"
+																disabled
+															>
+																Delete
+															</button>
+														</td>
+
 													</cfif>
 												</tr>
 											</cfloop>
@@ -187,10 +206,22 @@
 												<input type="date" class="form-control" id="dob" name="dob" required>
 											</div>
 										</div>
-										<div class="row mb-3">
+										<div class="row mb-1">
 											<div class="col">
 												<label for="upload-img" class="form-label">Upload Photo </label>
 												<input type="file" class="form-control" id="upload-img" 													name="uploadImg" required>
+											</div>
+
+										</div>
+										<div class="row mb-3">
+											<div class="col d-flex gap-2">
+												<div class="imgThumbNail">
+													<img id="contact-img-thumb">
+													<span id="imgThumbName"></span>
+												</div>
+												<div>
+													<button id="thumb-close"></button>
+												</div>
 											</div>
 										</div>
 										<div class="form-head">

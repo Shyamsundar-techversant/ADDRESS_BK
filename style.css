@@ -251,6 +251,13 @@ a{
 	color:#fff;
 	
 }
+#thumb-close{
+	color:red;
+	padding:3px;
+	font-size:18px;
+	border:none;
+	background:none;
+}
 
 /*  DELETE CONTACT*/
 

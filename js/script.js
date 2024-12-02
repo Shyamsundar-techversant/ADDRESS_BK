@@ -14,11 +14,12 @@ $(document).ready(function(){
 		contAddress=$('#address'),
 		contPincode=$('#pincode'),
 		contStreet=$('#street'),
-		contHobby=$('#hobby');
+		contHobby=$('#hobby'),
+		contThumbNail=$('#contact-img-thumb'),
+		contThumbName=$('#imgThumbName'),
+		thumbCloseBtn = $('#thumb-close');
 		
 	let publicContact=document.getElementById('publicUser');
-	
-
 
 	let	fullName=$('#contact-name'),
 		gender=$('#contact-gender'),
@@ -43,14 +44,17 @@ $(document).ready(function(){
 		var fileInput = $('#upload-img')[0];
 		var file=fileInput.files[0];
 		let publicData=publicContact.checked? 1:0 ; 
-
 		let formData = new FormData();
 		formData.append('title', contTitle.val());
 		formData.append('firstname', contFirstname.val());
 		formData.append('lastname', contLastname.val());
 		formData.append('gender', contGender.val());
 		formData.append('dob', contDob.val());
-		formData.append('file', file);
+
+		if(file){
+			formData.append('file', file);
+		}
+
 		formData.append('email', contEmail.val());
 		formData.append('phone', contPhone.val());
 		formData.append('address', contAddress.val());
@@ -58,7 +62,6 @@ $(document).ready(function(){
 		formData.append('pincode', contPincode.val());
 		formData.append('hobbies',contHobby.val());
 		formData.append('public',publicData);
-		
 		$.ajax({
 			url:'Components/main.cfc?method=validateFormAndCreateOrUpdateUser',
 			type:'POST',
@@ -111,19 +114,18 @@ $(document).ready(function(){
 			},
 			success:function(response){
 				const data=JSON.parse(response);
-				console.log(data);
-				const hobbies=	data.DATA.map(row=>row[data.COLUMNS.indexOf("HOBBY_NAME")]);
-				console.log(hobbies);
-				const dataRow = data.DATA[0];
-				$('#profile-picture').attr('src',`./Uploads/${dataRow[7]}`);
-				fullName.text(`${dataRow[13]}${dataRow[3]}${dataRow[4]}`);
-				gender.text(`${dataRow[14]}`);
-				dob.text(`${dataRow[6]}`);
-				address.text(`${dataRow[8]}`);
-				pincode.text(`${dataRow[10]}`);
-				email.text(`${dataRow[11]}`);
-				phone.text(`${dataRow[12]}`);	
-				$('#user-hobbies').text(hobbies.join(","));	
+				const hobbies=	data.hobby_name.split(",");
+				let date = new Date(data.dob);
+				let formattedDate = date.toISOString().split('T')[0];
+				$('#profile-picture').attr('src',`./Uploads/${data.imagePath}`);
+				fullName.text(`${data.titles} ${data.firstName}${data.lastName}`);
+				gender.text(`${data.gender_values}`);
+				dob.text(formattedDate);
+				address.text(`${data.address}`);
+				pincode.text(`${data.pincode}`);
+				email.text(`${data.email}`);
+				phone.text(`${data.phone}`);	
+				$('#user-hobbies').text(hobbies); 	
 			},
 			error:function(){
 				console.log("Request Failed");
@@ -135,6 +137,11 @@ $(document).ready(function(){
 	$('.edit-cont-details').on('click',function(){
 		document.getElementById('add-cont').style.display="none";
 		document.getElementById('edit-cont').style.display="block";
+
+		contThumbNail.show();
+		contThumbName.show();
+		thumbCloseBtn.show();
+
 		if($("#error-data li").length > 0){
 			$('#error-data li').remove();
 		}
@@ -148,27 +155,32 @@ $(document).ready(function(){
 			success:function(response){
 				const data= JSON.parse(response);
 				console.log(data);
-				const contactData=data.DATA[0];
-
-				let public = contactData[data.COLUMNS.indexOf("PUBLIC")];
+				let public = data.public;
 				if(public){
 					publicContact.checked=true;
 				}
 				else{
 					publicContact.checked=false;
 				}
-				const hobbies=	data.DATA.map(row=>row[data.COLUMNS.indexOf("HOBBY_ID")]);
-				contTitle.val(contactData[data.COLUMNS.indexOf("TITLEID")]);
-				contFirstname.val(contactData[data.COLUMNS.indexOf("FIRSTNAME")]);
-				contLastname.val(contactData[data.COLUMNS.indexOf("LASTNAME")]);
-				contGender.val(contactData[data.COLUMNS.indexOf("GENDERID")]);
-				contDob.val(contactData[data.COLUMNS.indexOf("DOB")]);
-				contEmail.val(contactData[data.COLUMNS.indexOf("EMAIL")]);
-				contPhone.val(contactData[data.COLUMNS.indexOf("PHONE")]);
-				contAddress.val(contactData[data.COLUMNS.indexOf("ADDRESS")]);
-				contPincode.val(contactData[data.COLUMNS.indexOf("PINCODE")]);
-				contStreet.val(contactData[data.COLUMNS.indexOf("STREET")]);			
-				contHobby.val(hobbies[0].split(","));	
+				const hobbies=	data.hobby_Id.split(",");
+				let date = new Date(data.dob);
+				let formattedDate = date.toISOString().split('T')[0];
+				contTitle.val(data.titleId);
+				contFirstname.val(data.firstName);
+				contLastname.val(data.lastName);
+				contGender.val(data.genderId);
+				contDob.val(formattedDate);
+				contEmail.val(data.email);
+				contPhone.val(data.phone);
+				contAddress.val(data.address);
+				contPincode.val(data.pincode);
+				contStreet.val(data.street);			
+				contHobby.val(hobbies);	
+				contThumbNail.attr('src',`./Uploads/${data.imagePath}`);
+				contThumbNail.attr('width','30');
+				contThumbNail.attr('height','30');
+				contThumbName.text(`${data.imagePath}`);
+				thumbCloseBtn.html(`<i class="fa-solid fa-xmark"></i>`)
 			},
 			error:function(){
 				console.log("Request Failed");
@@ -176,61 +188,56 @@ $(document).ready(function(){
 		});
 
 	});
+	thumbCloseBtn.on('click',function(event){
+		contThumbNail.hide();
+		contThumbName.hide();
+		thumbCloseBtn.hide()
 
+	});
 	$('#edit-cont').on('click',function(event){	
 		event.preventDefault();
 		var fileInput = $('#upload-img')[0];
 		var file=fileInput.files[0];
-
+		let formData = new FormData();
+		let publicData=publicContact.checked? 1:0 ;
+		formData.append('title', contTitle.val());
+		formData.append('firstname', contFirstname.val());
+		formData.append('lastname', contLastname.val());
+		formData.append('gender', contGender.val());
+		formData.append('dob', contDob.val());
 		if(file){
-			let formData = new FormData();
-			let publicData=publicContact.checked? 1:0 ;
-			formData.append('title', contTitle.val());
-			formData.append('firstname', contFirstname.val());
-			formData.append('lastname', contLastname.val());
-			formData.append('gender', contGender.val());
-			formData.append('dob', contDob.val());
 			formData.append('file', file);
-			formData.append('email', contEmail.val());
-			formData.append('phone', contPhone.val());
-			formData.append('address', contAddress.val());
-			formData.append('street', contStreet.val());
-			formData.append('pincode', contPincode.val());
-			formData.append('hobbies',contHobby.val());
-			formData.append('id',contactId);
-			formData.append('public',publicData);
-			console.log(formData);
-			$.ajax({
-				url:'Components/main.cfc?method=validateFormAndCreateOrUpdateUser',
-				type:'POST',
-				data:formData,
-				processData:false,
-				contentType:false,
-				success:function(response){
-					let data = JSON.parse(response);
-					console.log(data);	
-					if(data.length === 0){
-						$('#contacts-form').closest('.modal').modal('hide');
-						location.reload();
-					}
-					else{
-						addError(data);
-					}
-					
-				},
-				error:function(){
-					console.log("Request Failed");
+		}
+		formData.append('email', contEmail.val());
+		formData.append('phone', contPhone.val());
+		formData.append('address', contAddress.val());
+		formData.append('street', contStreet.val());
+		formData.append('pincode', contPincode.val());
+		formData.append('hobbies',contHobby.val());
+		formData.append('id',contactId);
+		formData.append('public',publicData);
+		$.ajax({
+			url:'Components/main.cfc?method=validateFormAndCreateOrUpdateUser',
+			type:'POST',
+			data:formData,
+			processData:false,
+			contentType:false,
+			success:function(response){
+				let data = JSON.parse(response);
+				console.log(data);	
+				if(data.length === 0){
+					$('#contacts-form').closest('.modal').modal('hide');
+					location.reload();
 				}
-			});
-		}
-		else{
-			const errorList = document.getElementById("error-data");
-			errorList.innerHTML="";
-			let li= document.createElement('li');
-			li.textContent="Photo is required";
-			errorList.appendChild(li);
-		}
-
+				else{
+					addError(data);
+				}
+					
+			},
+			error:function(){
+				console.log("Request Failed");
+			}
+		});		
 	});
 
 	//DELETE CONTACT
