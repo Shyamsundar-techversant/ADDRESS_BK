@@ -72,7 +72,7 @@ $(document).ready(function(){
 				console.log(response);
 				let data = JSON.parse(response);
 				console.log(data);	
-				if(data.length === 0){
+				if(data === "Success"){
 					$('#contacts-form').closest('.modal').modal('hide');
 					location.reload();
 				}
@@ -223,9 +223,10 @@ $(document).ready(function(){
 			processData:false,
 			contentType:false,
 			success:function(response){
+				console.log(response);
 				let data = JSON.parse(response);
 				console.log(data);	
-				if(data.length === 0){
+				if(data === "Success"){
 					$('#contacts-form').closest('.modal').modal('hide');
 					location.reload();
 				}

@@ -245,15 +245,28 @@
 			<cfset arrayAppend(local.errors,"*Please enter date of birth")>
 		<cfelseif NOT IsDate(arguments.dob)>
 			<cfset arrayAppend(local.errors,"*Please enter a valid date")>
-		</cfif>
+		</cfif> 
 		
 		<!--- VALIDATE IMAGE --->		
 		<cfset local.maxSize=5*1024*1024>
 		<cfset local.allowedExtensions = "jpeg,jpg,png,gif">
 		<cfset local.uploadedImage=structNew()>
 
-		<cfif NOT structKeyExists(form,"file")>
-			<cfset arrayAppend(local.errors,"* Photo is required")>			
+		<cfif NOT structKeyExists(form,"file") OR arguments.file EQ "undefined">
+			<cfif NOT structKeyExists(arguments,"id")>
+				<cfset arrayAppend(local.errors,"* Photo is required")>
+			<cfelse>
+				<cfset local.decryptedId=decrypt(arguments.id,application.encryptionKey,"AES","Hex")>
+				<cfquery name="local.contactImage" datasource="coldfusion">
+					SELECT 
+						imagePath
+					FROM 
+						contacts
+					WHERE
+						id=<cfqueryparam value="#local.decryptedId#" cfsqltype="cf_sql_integer">
+				</cfquery>					
+				<cfset arguments['uploadImg'] = local.contactImage.imagePath>	
+			</cfif>
 		<cfelse>
 			<cfset local.uploadDir=expandPath('./Uploads/')>
 
@@ -357,24 +370,24 @@
 		
 		<!--- ADD EDIT FUNCTION CALL --->
 		<cfif arrayLen(local.errors) EQ 0>
-			<cfset userData=addEditContact(
+			<cfset local.result=addEditContact(
 							argumentCollection=arguments									
 						)
 			>
-			<cfreturn local.errors>
+			<cfreturn local.result>
 		<cfelse>	
 			<cfreturn local.errors>
 		</cfif> 
 	</cffunction> 
 	
 	<!--- ADD EDIT CONTACT --->
-	<cffunction name="addEditContact" access="public" returntype="void" returnformat="JSON">
+	<cffunction name="addEditContact" access="public" returntype="any" returnformat="JSON">
 		<cfargument name="title" type="string" required="true">
 		<cfargument name="firstname" type="string" required="true">
 		<cfargument name="lastname" type="string" required="true">
 		<cfargument name="gender" type="string" required="true">
 		<cfargument name="dob" type="date" required="true">
-		<cfargument name="uploadImg" type="string" required="true">
+		<cfargument name="uploadImg" type="string" required="false">
 		<cfargument name="email" type="string" required="true">
 		<cfargument name="phone" type="string" required="true">
 		<cfargument name="address" type="string" required="true">
@@ -442,7 +455,6 @@
 				<cfquery name="local.editCont" datasource="coldfusion">
 					UPDATE contacts
 					SET 
-						userId=<cfqueryparam value="#session.userId#" cfsqltype="cf_sql_integer">,
 						titleId=<cfqueryparam value="#arguments.title#" cfsqltype="cf_sql_integer">,
 						firstName=<cfqueryparam value="#arguments.firstname#" cfsqltype="cf_sql_varchar">,
 						lastName=<cfqueryparam value="#arguments.lastname#" cfsqltype="cf_sql_varchar">,
@@ -493,30 +505,35 @@
 						hobby_id 
 					NOT IN(<cfqueryparam value="#arguments.hobbies#" cfsqltype="cf_sql_varchar" list="true">)
 						
-				</cfquery>			
-				<cfquery datasource="coldfusion" name="local.addNewHobbies">
-					INSERT INTO
-						contact_hobbies(
-									contact_id,
-									hobby_id
-								)
-					VALUES
-						<cfloop array="#local.newHobbiesToInsert#" index="local.i" item="local.hobby">
-							(
-								<cfqueryparam value="#local.decryptedId#" cfsqltype="cf_sql_integer">,
-								<cfqueryparam value="#local.hobby#" cfsqltype="cf_sql_integer">
-							)
-							<cfif local.i LT #arrayLen(local.newHobbiesToInsert)#>
-								,
-							</cfif>
-						</cfloop>;
 				</cfquery>
-				
-			</cfif>
+			
+				<cfif #arrayLen(local.newHobbiesToInsert)# GT 0 >
+					<cfquery datasource="coldfusion" name="local.addNewHobbies">
+						INSERT INTO
+							contact_hobbies(
+										contact_id,
+										hobby_id
+									)
+						VALUES
+							<cfloop array="#local.newHobbiesToInsert#" index="local.i" >
+								(
+									<cfqueryparam value="#local.decryptedId#" cfsqltype="cf_sql_integer">,
+									<cfqueryparam value="#local.i#" cfsqltype="cf_sql_integer">
+								)
+								<cfif local.i LT #arrayLen(local.newHobbiesToInsert)#>
+									,
+								</cfif>
+							</cfloop>;
+					</cfquery>
+				</cfif>							
+			</cfif>	
+			<cfset local.result="Success">			
  		<cfcatch>
+			<cfset local.result="Failed">
 			<cfdump var="#cfcatch#">
 		</cfcatch>
-		</cftry>			
+		</cftry>	
+		<cfreturn local.result>		
 	</cffunction>
 
 	<!--- DELETE CONTACT --->
